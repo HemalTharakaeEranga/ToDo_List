@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        input[type="text"], input[type="submit"] {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .edit-form {
+            display: none;
+            margin-top: 10px;
+        }
+
+        .success-message {
+            color: green;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>To-Do List</h1>
+        <form id="todo-form">
+            <input type="text" id="title" placeholder="Title" required>
+            <input type="text" id="description" placeholder="Description" required>
+            <input type="submit" value="Add Todo">
+        </form>
+        <ul id="todo-list"></ul>
+        <div id="success-message" class="success-message"></div>
+
+        <form id="edit-form" class="edit-form">
+            <input type="text" id="edit-title" placeholder="Title" required>
+            <input type="text" id="edit-description" placeholder="Description" required>
+            <input type="button" value="Update Todo" id="update-button">
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const todoForm = document.getElementById('todo-form');
+            const todoList = document.getElementById('todo-list');
+            const successMessage = document.getElementById('success-message');
+            const editForm = document.getElementById('edit-form');
+            const updateButton = document.getElementById('update-button');
+            let currentTodo = null;
+
+            todoForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const title = document.getElementById('title').value;
+                const description = document.getElementById('description').value;
+
+                const response = await fetch('http://localhost:3000/todos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ title, description })
+                });
+
+                const newTodo = await response.json();
+                addTodoToList(newTodo);
+                showSuccessMessage('Todo added successfully!');
+            });
+
+            const fetchTodos = async () => {
+                const response = await fetch('http://localhost:3000/todos');
+                const todos = await response.json();
+                todos.forEach(addTodoToList);
+            };
+
+            const addTodoToList = (todo) => {
+                const li = document.createElement('li');
+                li.textContent = `${todo.title} - ${todo.description}`;
+
+                const editButton = document.createElement('button');
+                editButton.textContent = 'Edit';
+                editButton.onclick = () => {
+                    currentTodo = todo;
+                    editForm.style.display = 'block';
+                    document.getElementById('edit-title').value = todo.title;
+                    document.getElementById('edit-description').value = todo.description;
+                };
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.onclick = async () => {
+                    await fetch(`http://localhost:3000/todos/${todo.id}`, {
+                        method: 'DELETE'
+                    });
+                    li.remove();
+                    showSuccessMessage('Todo deleted successfully!');
+                };
+
+                li.appendChild(editButton);
+                li.appendChild(deleteButton);
+                todoList.appendChild(li);
+            };
+
+            const updateTodo = async () => {
+                const title = document.getElementById('edit-title').value;
+                const description = document.getElementById('edit-description').value;
+
+                const response = await fetch(`http://localhost:3000/todos/${currentTodo.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ title, description })
+                });
+
+                const updatedTodo = await response.json();
+                todoList.innerHTML = '';
+                await fetchTodos();
+                editForm.style.display = 'none';
+                showSuccessMessage('Todo updated successfully!');
+            };
+
+            updateButton.addEventListener('click', updateTodo);
+
+            const showSuccessMessage = (message) => {
+                successMessage.textContent = message;
+                setTimeout(() => {
+                    successMessage.textContent = '';
+                }, 3000);
+            };
+
+            fetchTodos();
+        });
+    </script>
+</body>
+</html>

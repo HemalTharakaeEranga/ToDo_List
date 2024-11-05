@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,7 +24,8 @@
             margin-bottom: 20px;
         }
 
-        input[type="text"], input[type="submit"] {
+        input[type="text"],
+        input[type="submit"] {
             width: 100%;
             padding: 10px;
             margin: 5px 0;
@@ -64,6 +66,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>To-Do List</h1>
@@ -96,17 +99,29 @@
                 const title = document.getElementById('title').value;
                 const description = document.getElementById('description').value;
 
-                const response = await fetch('http://localhost:3000/todos', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ title, description })
-                });
+                try {
+                    const response = await fetch('http://localhost:3000/todos', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ title, description })
+                    });
 
-                const newTodo = await response.json();
-                addTodoToList(newTodo);
-                showSuccessMessage('Todo added successfully!');
+                    if (!response.ok) {  // Check if the response status is not OK
+                        const error = await response.json();
+                        showErrorMessage(error.message); // Display error message if validation fails
+                        return;
+                    }
+
+                    const newTodo = await response.json();
+                    addTodoToList(newTodo);
+                    showSuccessMessage('Todo added successfully!');
+                    todoForm.reset(); // Clear the form after successful submission
+                } catch (error) {
+                    console.error('Error adding todo:', error);
+                    showErrorMessage('An unexpected error occurred.');
+                }
             });
 
             const fetchTodos = async () => {
@@ -166,6 +181,15 @@
 
             const showSuccessMessage = (message) => {
                 successMessage.textContent = message;
+                successMessage.style.color = 'green';
+                setTimeout(() => {
+                    successMessage.textContent = '';
+                }, 3000);
+            };
+
+            const showErrorMessage = (message) => {
+                successMessage.textContent = message;
+                successMessage.style.color = 'red';
                 setTimeout(() => {
                     successMessage.textContent = '';
                 }, 3000);
@@ -173,6 +197,8 @@
 
             fetchTodos();
         });
+
     </script>
 </body>
+
 </html>
